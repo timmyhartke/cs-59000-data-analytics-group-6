@@ -1,5 +1,7 @@
 library(tidyverse)
 library(readxl)
+library(glmnet)
+
 #-----------------
 #READ DATA FROM FILE
 #-----------------
@@ -75,7 +77,8 @@ ggplot(data = correct_dataset_columns) +
 
 # Graph average gas price vs. emissions
  ggplot(data = correct_dataset_columns) +
-   geom_point(mapping = aes(x = `average gasoline price`, y = `tot mean`, color=region))
+   geom_point(mapping = aes(x = `average gasoline price`, y = `tot mean`, color=region)) +
+   coord_cartesian(ylim=c(0, 30000000))
 
 # Graph median income vs. emissions
  ggplot(data = correct_dataset_columns) +
@@ -84,3 +87,10 @@ ggplot(data = correct_dataset_columns) +
 # Graph annual mean temperature vs emissions
  ggplot(data = correct_dataset_columns) +
    geom_point(mapping = aes(x = `average annual temperature celcius`, y = `tot mean`, color=region))
+ 
+# Example multinomial logistic regression model
+ xH <- model.matrix(`total emissions` ~ population , data=correct_dataset_columns)
+ yH <- correct_dataset_columns$`total emissions`
+ netfit <- glmnet(xH, yH, family='multinomial')
+ lmin <- min(netfit$lambda)
+ pnet <- drop(predict(netfit, xH, s=lmin, type="response"))
