@@ -42,6 +42,30 @@ colnames(correct_dataset_columns) <- c(
 correlations <- cor(correct_dataset_columns$`total emissions`, "storage.mode<-"(as.matrix(correct_dataset_columns[c(1:ncol(correct_dataset_columns))]), "numeric"), use = "pairwise.complete.obs")
 format(correlations)  
 
+# This functions as our logit function that will be used in our logistic 
+# regressions for research questions 2 and 3. 
+# We create a new column called 'emissions level' to store this new data in
+# We take the median of all 'tot mean' values, and we classify all
+# values higher than the median as 'high emissions' and all the values lower or 
+# equal to the median as 'low emissions'.
+# For 'tot mean', we have more NA values than actual values, so we first use
+# complete.cases to remove all rows where 'tot mean' is 'NA'
+correct_dataset_columns <- correct_dataset_columns[complete.cases(correct_dataset_columns[ , c('tot mean')]), ]
+tot_mean_median <- median(correct_dataset_columns$`tot mean`)
+
+high_low_emissions <- c(nrow(correct_dataset_columns))
+for (index in 1:nrow(correct_dataset_columns)){
+  tot_mean = correct_dataset_columns[index, ]$`tot mean`
+  print(tot_mean)
+  if (tot_mean > tot_mean_median){
+    high_low_emissions[index] <- 1
+  }
+  else {
+    high_low_emissions[index] <- 0
+  }
+}
+correct_dataset_columns$`emissions level` <- high_low_emissions
+
 
 #-----------------
 #DATA VISUALIZATION
@@ -49,21 +73,42 @@ format(correlations)
 
 # Graph population vs. emissions 
 ggplot(data = correct_dataset_columns) +
-  geom_point(mapping = aes(x = `congestion rank`, y = `tot mean`))
+  geom_point(mapping = aes(x = `congestion rank`, y = log(`tot mean`)))
 
 # Graph congestion rank vs. total pollution
 ggplot(data = correct_dataset_columns) +
-  geom_point(mapping = aes(x = population, y = `tot mean`, color=region))
+  geom_point(mapping = aes(x = population, y = log(`tot mean`), color=region))
 
-# Graph average gas price vs. emissions
-ggplot(data = correct_dataset_columns) +
-  geom_point(mapping = aes(x = `average gasoline price`, y = `tot mean`, color=region))
 
 # Graph median income vs. emissions
 ggplot(data = correct_dataset_columns) +
-  geom_smooth(mapping = aes(x = `ngdp per capita`, y = `tot mean`, color=region))
+  geom_smooth(mapping = aes(x = `ngdp`, y = log(`tot mean`), color=region))
 
-# Graph annual mean temperature vs emissions
-ggplot(data = correct_dataset_columns) +
-  geom_point(mapping = aes(x = `average annual temperature celcius`, y = `tot mean`, color=region))
+
+#-----------------
+#RESEARCH QUESTION 1
+#-----------------
+# First research question: What effect does a city's population have on its total emissions?
+# For this, we set up a linear regression model that uses a city's population
+# to predict what the city's total pollution level is
+population_model <- glm(log(`tot mean`) ~ population, data=correct_dataset_columns)
+summary(population_emissions_model)
+
+
+#-----------------
+#RESEARCH QUESTION 2
+#-----------------
+# Second research question: What effect does congestion have on a city's total emissions?
+congestion_model <- glm(`emissions level` ~ `mean one-way travel time` + 
+                          `congestion rank`, data=correct_dataset_columns, 
+                        family="binomial")
+summary(congestion_model)
+
+#-----------------
+#RESEARCH QUESTION 3
+#-----------------
+# Third research question: What effect does a city's area have on the city's overall total emissions?
+area_model <- glm(`emissions level` ~ `city area km`, data=correct_dataset_columns, 
+                        family="binomial")
+summary(area_model)
 
