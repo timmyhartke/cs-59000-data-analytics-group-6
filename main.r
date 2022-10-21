@@ -67,6 +67,10 @@ for (index in 1:nrow(correct_dataset_columns)){
 correct_dataset_columns$`emissions level` <- high_low_emissions
 
 
+training_data <- head(correct_dataset_columns, 56)
+testing_data <- tail(correct_dataset_columns, 86)
+
+
 #-----------------
 #DATA VISUALIZATION
 #-----------------
@@ -91,8 +95,20 @@ ggplot(data = correct_dataset_columns) +
 # First research question: What effect does a city's population have on its total emissions?
 # For this, we set up a linear regression model that uses a city's population
 # to predict what the city's total pollution level is
-population_model <- glm(log(`tot mean`) ~ population, data=correct_dataset_columns)
-summary(population_emissions_model)
+
+# By the below model we get Y-Intercept as 1.44e+01 and slope as 3.202e-07. 
+# p value is really small(4.29e-14) which is a good thing. R-squared value is 0.3355 which means almost 33% of total emissions 
+# can be estimated given the changes in population.
+population_model <- lm(log(`tot mean`) ~ population, data=training_data)
+population_model
+summary(population_model)
+
+# Information regarding the model
+attributes(population_model)
+population_model$residuals
+
+# prediction
+predict(population_model, testing_data) %>% round(1)
 
 
 #-----------------
@@ -100,15 +116,35 @@ summary(population_emissions_model)
 #-----------------
 # Second research question: What effect does congestion have on a city's total emissions?
 congestion_model <- glm(`emissions level` ~ `mean one-way travel time` + 
-                          `congestion rank`, data=correct_dataset_columns, 
+                          `congestion rank`, data=training_data, 
                         family="binomial")
 summary(congestion_model)
+
+# Information regarding the model
+attributes(congestion_model)
+congestion_model$residuals
+
+# prediction
+probabilities <- congestion_model %>% predict(testing_data, type = "response")
+predicted_congestion_classes <- ifelse(probabilities > 0.5, 1, 0)
+print(predicted_congestion_classes)
+
 
 #-----------------
 #RESEARCH QUESTION 3
 #-----------------
 # Third research question: What effect does a city's area have on the city's overall total emissions?
-area_model <- glm(`emissions level` ~ `city area km`, data=correct_dataset_columns, 
+area_model <- glm(`emissions level` ~ `city area km`, data=training_data, 
                         family="binomial")
 summary(area_model)
+
+# Information regarding the model
+attributes(area_model)
+area_model$residuals
+
+
+# prediction
+probabilities <- area_model %>% predict(testing_data, type = "response")
+predicted_area_classes <- ifelse(probabilities > 0.5, 1, 0)
+print(predicted_area_classes)
 
