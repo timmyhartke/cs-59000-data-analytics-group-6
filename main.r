@@ -106,6 +106,10 @@ summary(population_model)
 # Information regarding the model
 attributes(population_model)
 population_model$residuals
+# NOTE: If your plot window is too small in RStudio, you will get an error
+# at this line. To fix this, you just need to drag the end of your plot window
+# to make it a bit bigger. 
+hist(population_model$residuals)
 
 # prediction
 predict(population_model, testing_data) %>% round(1)
@@ -123,6 +127,10 @@ summary(congestion_model)
 # Information regarding the model
 attributes(congestion_model)
 congestion_model$residuals
+# NOTE: If your plot window is too small in RStudio, you will get an error
+# at this line. To fix this, you just need to drag the end of your plot window
+# to make it a bit bigger. 
+hist(congestion_model$residuals)
 
 # prediction
 probabilities <- congestion_model %>% predict(testing_data, type = "response")
@@ -141,6 +149,10 @@ summary(area_model)
 # Information regarding the model
 attributes(area_model)
 area_model$residuals
+# NOTE: If your plot window is too small in RStudio, you will get an error
+# at this line. To fix this, you just need to drag the end of your plot window
+# to make it a bit bigger. 
+hist(area_model$residuals)
 
 
 # prediction
