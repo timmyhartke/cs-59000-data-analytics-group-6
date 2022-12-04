@@ -1,5 +1,6 @@
 library(tidyverse)
 library(readxl)
+library(class)
 #-----------------
 #READ DATA FROM FILE
 #-----------------
@@ -52,6 +53,7 @@ format(correlations)
 # complete.cases to remove all rows where 'tot mean' is 'NA'
 correct_dataset_columns <- correct_dataset_columns[complete.cases(correct_dataset_columns[ , c('tot mean')]), ]
 tot_mean_median <- median(correct_dataset_columns$`tot mean`)
+nrow(correct_dataset_columns)
 
 high_low_emissions <- c(nrow(correct_dataset_columns))
 for (index in 1:nrow(correct_dataset_columns)){
@@ -65,62 +67,94 @@ for (index in 1:nrow(correct_dataset_columns)){
   }
 }
 correct_dataset_columns$`emissions level` <- high_low_emissions
-
-
-training_data <- head(correct_dataset_columns, 56)
-testing_data <- tail(correct_dataset_columns, 86)
+# We are using the first 40% of our dataset as training data, and the last 60%
+# of our dataset as testing data
+training_data_length <- floor(nrow(correct_dataset_columns)*0.4)
+testing_data_length <- nrow(correct_dataset_columns) - training_data_length
+training_data <- head(correct_dataset_columns, training_data_length)
+testing_data <- tail(correct_dataset_columns,testing_data_length)
 
 
 #-----------------
 #DATA VISUALIZATION
 #-----------------
 
-# Graph population vs. emissions 
+# Graph congestion rank vs. total emissions 
 ggplot(data = correct_dataset_columns) +
-  geom_point(mapping = aes(x = `congestion rank`, y = log(`tot mean`)))
+  geom_point(mapping = aes(x = `congestion rank`, y = log(`tot mean`))) +
+  ggtitle("Congestion Rank vs. Log of Total Emissions") +
+  xlab("Congestion Rank") + ylab("Total Emissions (log)")
 
-# Graph congestion rank vs. total pollution
-ggplot(data = correct_dataset_columns) +
-  geom_point(mapping = aes(x = population, y = log(`tot mean`), color=region))
+# Graph population vs. total emissions
+ggplot(data = correct_dataset_columns, aes(x = log(population), y = log(`tot mean`))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  ggtitle("Log of Population vs. Log of Total Emissions") +
+  xlab("Population (log)") + ylab("Total Emissions (log)")
+  
 
+# Graph mean one-way travel time vs. total emissions
+ggplot(data = correct_dataset_columns, aes(x=`mean one-way travel time`, y=log(`tot mean`), color=region)) +
+  geom_point() + 
+  ggtitle("Mean One-Way Travel Time vs. Log of Total Emissions") +
+  xlab("Population (log)") + ylab("Total Emissions (log)")
 
 # Graph median income vs. emissions
 ggplot(data = correct_dataset_columns) +
-  geom_smooth(mapping = aes(x = `ngdp`, y = log(`tot mean`), color=region))
+  geom_point(mapping = aes(x = log(`ngdp`), y = log(`tot mean`), color=region)) + 
+  ggtitle("Log of Median Income vs. Log of Total Emissions") +
+  xlab("Median Income") + ylab("Total Emissions")
 
 
 #-----------------
 #RESEARCH QUESTION 1
 #-----------------
 # First research question: What effect does a city's population have on its total emissions?
-# For this, we set up a linear regression model that uses a city's population
-# to predict what the city's total pollution level is
+# For this, we set up a linear regression mode that use a city's population
+# to predict what the city's total pollution level is and a logistic regression
+# model to predict whether a city is a 'high emissions' city or a 
+# 'low emissions' city 
 
-# By the below model we get Y-Intercept as 1.44e+01 and slope as 3.202e-07. 
-# p value is really small(4.29e-14) which is a good thing. R-squared value is 0.3355 which means almost 33% of total emissions 
-# can be estimated given the changes in population.
+# Linear regression model
 population_model <- lm(log(`tot mean`) ~ population, data=training_data)
 population_model
 summary(population_model)
 
 # Information regarding the model
 attributes(population_model)
-population_model$residuals
+population_linear_model$residuals
 # NOTE: If your plot window is too small in RStudio, you will get an error
 # at this line. To fix this, you just need to drag the end of your plot window
 # to make it a bit bigger. 
-hist(population_model$residuals)
+hist(population_linear_model$residuals)
 
 # prediction
-predict(population_model, testing_data) %>% round(1)
+predict(population_linear_model, testing_data) %>% round(1)
+
+# Logistic regression model
+population_logistic_model <- glm(`emissions level` ~ `population`, data=training_data, 
+                        family="binomial")
+summary(population_logistic_model)
+
+# Information regarding the model
+attributes(population_logistic_model)
+population_logistic_model$residuals
+# NOTE: If your plot window is too small in RStudio, you will get an error
+# at this line. To fix this, you just need to drag the end of your plot window
+# to make it a bit bigger. 
+hist(population_logistic_model$residuals)
+
+# prediction
+probabilities <- population_logistic_model %>% predict(testing_data, type = "response")
+predicted_population_logistic_classes <- ifelse(probabilities > 0.5, 1, 0)
+predicted_population_logistic_classes
 
 
 #-----------------
 #RESEARCH QUESTION 2
 #-----------------
 # Second research question: What effect does congestion have on a city's total emissions?
-congestion_model <- glm(`emissions level` ~ `mean one-way travel time` + 
-                          `congestion rank`, data=training_data, 
+congestion_model <- glm(`emissions level` ~ `mean one-way travel time`, data=training_data, 
                         family="binomial")
 summary(congestion_model)
 
@@ -136,6 +170,21 @@ hist(congestion_model$residuals)
 probabilities <- congestion_model %>% predict(testing_data, type = "response")
 predicted_congestion_classes <- ifelse(probabilities > 0.5, 1, 0)
 print(predicted_congestion_classes)
+
+
+#KNN
+# Gets all rows with non-empty mean one-way travel time
+knn_training_data <- training_data[complete.cases(training_data[,17]),]
+knn_testing_data <- testing_data[complete.cases(testing_data[,17]),]
+# Get the emissions level column for training and testing data
+training_categories <- knn_training_data[,21]$`emissions level`
+testing_categories <- knn_testing_data[,21]$`emissions level`
+
+congestion_knn_model <- knn(knn_training_data[,17], knn_testing_data[,17], training_categories, k=5)
+# Generate confusion matrix
+tab <- table(congestion_knn_model,testing_categories)
+tab
+
 
 
 #-----------------
