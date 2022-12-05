@@ -58,7 +58,6 @@ nrow(correct_dataset_columns)
 high_low_emissions <- c(nrow(correct_dataset_columns))
 for (index in 1:nrow(correct_dataset_columns)){
   tot_mean = correct_dataset_columns[index, ]$`tot mean`
-  print(tot_mean)
   if (tot_mean > tot_mean_median){
     high_low_emissions[index] <- 1
   }
@@ -80,8 +79,8 @@ testing_data <- tail(correct_dataset_columns,testing_data_length)
 #-----------------
 
 # Graph congestion rank vs. total emissions 
-ggplot(data = correct_dataset_columns) +
-  geom_point(mapping = aes(x = `congestion rank`, y = log(`tot mean`))) +
+ggplot(data = correct_dataset_columns, aes(x = `congestion rank`, y = log(`tot mean`))) +
+  geom_point() +
   ggtitle("Congestion Rank vs. Log of Total Emissions") +
   xlab("Congestion Rank") + ylab("Total Emissions (log)")
 
@@ -116,12 +115,12 @@ ggplot(data = correct_dataset_columns) +
 # 'low emissions' city 
 
 # Linear regression model
-population_model <- lm(log(`tot mean`) ~ population, data=training_data)
-population_model
-summary(population_model)
+population_linear_model <- lm(log(`tot mean`) ~ population, data=training_data)
+population_linear_model
+summary(population_linear_model)
 
 # Information regarding the model
-attributes(population_model)
+attributes(population_linear_model)
 population_linear_model$residuals
 # NOTE: If your plot window is too small in RStudio, you will get an error
 # at this line. To fix this, you just need to drag the end of your plot window
