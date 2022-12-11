@@ -172,6 +172,18 @@ print(predicted_congestion_classes)
 
 
 #KNN
+# Get the optimum k value
+i=1
+k.optm=1
+for(i in 1:42){
+  knn.mod<-knn(train=knn_training_data[,17], test=knn_testing_data[,17], cl=training_categories,k=i)
+  k.optm[i]<-100*sum(testing_categories==knn.mod)/NROW(testing_categories)
+  k=i
+  cat(k,'=',k.optm[i],'\n')
+}
+# This graph shows that k=10 appears to be the optimum value
+plot(k.optm, type="b",xlab="K-value", ylab="Accuracy Level")
+
 # Gets all rows with non-empty mean one-way travel time
 knn_training_data <- training_data[complete.cases(training_data[,17]),]
 knn_testing_data <- testing_data[complete.cases(testing_data[,17]),]
@@ -179,10 +191,18 @@ knn_testing_data <- testing_data[complete.cases(testing_data[,17]),]
 training_categories <- knn_training_data[,21]$`emissions level`
 testing_categories <- knn_testing_data[,21]$`emissions level`
 
-congestion_knn_model <- knn(knn_training_data[,17], knn_testing_data[,17], training_categories, k=5)
+congestion_knn_model <- knn(knn_training_data[,17], knn_testing_data[,17], training_categories, k=10)
 # Generate confusion matrix
 tab <- table(congestion_knn_model,testing_categories)
 tab
+# Precision
+tab[1, 1]/sum(tab[1, 1:2])
+# Recall
+tab[1, 1]/sum(tab[1:2, 1])
+# Specificity
+tab[2, 2]/sum(tab[2, 1:2])
+# Accuracy
+(tab[1, 1] + tab[2, 2])/sum(tab[1:2, 1:2])
 
 
 
